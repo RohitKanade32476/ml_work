@@ -1,0 +1,58 @@
+import pandas as pd
+from difflib import SequenceMatcher
+from rapidfuzz import fuzz  
+import re
+
+df = pd.read_excel("Bags and Backpacks.xlsx")
+df.fillna("", inplace=True)
+
+def clean_text(text):
+    text = str(text).lower()
+    text = re.sub(r"[^a-z0-9\s]", " ", text) 
+    return " ".join(text.split())  
+
+def string_similarity(a, b):
+    return SequenceMatcher(None, a, b).ratio()
+
+def keyword_similarity(query, keywords):
+    query = clean_text(query)
+    keywords_list = clean_text(keywords).split()
+
+    max_score = 0
+    for word in keywords_list:
+        seq_score = string_similarity(query, word)
+
+        fuzzy_score = fuzz.partial_ratio(query, word) / 100.0  
+
+        score = max(seq_score, fuzzy_score)
+
+        if query in word or word in query:
+            score += 0.3
+
+        max_score = max(max_score, score)
+
+    return min(max_score, 1.0)  # cap at 1.0
+
+def recommend_products(query, data, n=5):
+    scores = []
+
+    for _, row in data.iterrows():
+        product_name = row.get("name")
+        keywords = row.get("seokeywords")
+
+        similarity = keyword_similarity(query, keywords)
+        scores.append((product_name, keywords, similarity))
+
+    scores = sorted(scores, key=lambda x: x[2], reverse=True)
+
+    return scores[:n]
+
+user_input = input("Enter a product keyword: ").strip().lower()
+recommendations = recommend_products(user_input, df, n=5)
+
+if recommendations:
+    print("\nRecommended products based on SEO keywords:")
+    for idx, (product, keywords, score) in enumerate(recommendations, 1):
+        print(f"{idx}. {product}  |  SEO Keywords: {keywords}  |  Match Score: {score:.2f}")
+else:
+    print("No similar products found.")
