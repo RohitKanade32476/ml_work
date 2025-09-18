@@ -1,0 +1,30 @@
+import google.generativeai as genai
+from PIL import Image
+
+genai.configure(api_key="AIzaSyBOaqVO_lH6q5jSjpyhHCR5Y0IAIsH7XRg")
+
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+def get_product_name(image_path):
+    """
+    Analyzes a product image using Gemini API and returns only the product name.
+    """
+    try:
+        image = Image.open(image_path)
+
+        response = model.generate_content([
+            "Look at this image and return ONLY the product name (no extra words).",
+            image
+        ])
+
+        return response.text.strip()
+
+    except Exception as e:
+        return f"Error: {e}"
+
+if __name__ == "__main__":
+    image_path = input("Enter the path of the product image: ").strip()
+    product_name = get_product_name(image_path)
+
+    print("\n--- Product Name ---")
+    print(product_name)
